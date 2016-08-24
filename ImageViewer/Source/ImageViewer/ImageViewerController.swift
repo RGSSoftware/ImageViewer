@@ -92,6 +92,8 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
     public var swipeToDismissCompletionBlock: (Void -> Void)?
     /// Executed as the last step when the ImageViewer is dismissed (either via the close button, or swipe)
     public var dismissCompletionBlock: (Void -> Void)?
+
+    public var deleteBlock: (Void -> Void)?
     
     /// INTERACTIONS
     private let doubleTapRecognizer = UITapGestureRecognizer()
@@ -142,6 +144,10 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
         closeButton.setImage(closeButtonAssets.highlighted, forState: UIControlState.Highlighted)
         closeButton.alpha = 0.0
         closeButton.addTarget(self, action: #selector(ImageViewerController.close(_:)), forControlEvents: .TouchUpInside)
+        
+        deleteButton.setImage(UIImage(named: "garbage"), forState: UIControlState.Normal)
+        deleteButton.alpha = 0.0
+        deleteButton.addTarget(self, action: #selector(ImageViewerController.deleteAction), forControlEvents: .TouchUpInside)
     }
     
     private func configureGestureRecognizers() {
@@ -152,6 +158,11 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
         
         panGestureRecognizer.addTarget(self, action: #selector(ImageViewerController.scrollViewDidPan(_:)))
         view.addGestureRecognizer(panGestureRecognizer)
+    }
+    
+    func deleteAction() {
+        deleteBlock?()
+        close(UIView())
     }
     
     private func configureImageView() {
@@ -181,6 +192,9 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
         view.addSubview(imageView)
         view.addSubview(scrollView)
         view.addSubview(closeButton)
+        
+        view.addSubview(deleteButton)
+
     }
     
     // MARK: - View Lifecycle
@@ -210,6 +224,8 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
         overlayView.frame = CGRect(origin: CGPoint(x: originX, y: originY), size: CGSize(width: width, height: height))
         
         closeButton.frame = CGRect(origin: CGPoint(x: view.bounds.size.width - CGFloat(closeButtonPadding) - closeButtonSize.width, y: CGFloat(closeButtonPadding)), size: closeButtonSize)
+        
+        deleteButton.frame = CGRect(origin: CGPoint(x: CGFloat(closeButtonPadding), y: CGFloat(closeButtonPadding)), size: closeButtonSize)
         
         if shouldRotate {
             shouldRotate = false
@@ -298,6 +314,7 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
                 self.isAnimating = false
                 self.scrollView.maximumZoomScale = maximumZoomScale(forBoundingSize: rotationAdjustedBounds().size, contentSize: self.imageView.bounds.size)
                 UIView.animateWithDuration(self.showCloseButtonDuration, animations: { self.closeButton.alpha = 1.0 })
+                UIView.animateWithDuration(self.showCloseButtonDuration, animations: { self.deleteButton.alpha = 1.0 })
                 self.configureGestureRecognizers()
                 self.showCompletionBlock?()
                 self.displacedView.hidden = false
@@ -488,6 +505,8 @@ public final class ImageViewerController: UIViewController, UIScrollViewDelegate
             
             overlayView.alpha = 1 - fabs(scrollView.contentOffset.y / distanceToEdge)
             closeButton.alpha = 1 - fabs(scrollView.contentOffset.y / distanceToEdge) * transparencyMultiplier
+            deleteButton.alpha = 1 - fabs(scrollView.contentOffset.y / distanceToEdge) * transparencyMultiplier
+
             
             let newY = CGFloat(closeButtonPadding) - abs(scrollView.contentOffset.y / distanceToEdge) * velocityMultiplier
             closeButton.frame = CGRect(origin: CGPoint(x: closeButton.frame.origin.x, y: newY), size: closeButton.frame.size)
